@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "fiap-esperanca-solidaria-server",
+      "Group": "Servers",
+      "Host": "postgresdb",
+      "Port": 5432,
+      "MaintenanceDB": "postgres",
+      "Username": "postgresAdmin",
+      "SSLMode": "prefer",
+      "PassFile": "/pgpassfile"
+    }
+  }
+}

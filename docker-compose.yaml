@@ -1,0 +1,141 @@
+services:
+  localstack:
+    container_name: localstack
+    image: localstack/localstack-pro:${LOCALSTACK_IMAGE_TAG}
+    ports:
+      - "${LOCALSTACK_HOST}:${LOCALSTACK_PORT1}:${LOCALSTACK_PORT1}"
+      - "${LOCALSTACK_HOST}:${LOCALSTACK_PORT2}:${LOCALSTACK_PORT2}"      
+    environment:
+      SERVICES: ${LOCALSTACK_SERVICES}
+      LOCALSTACK_AUTH_TOKEN: ${LOCALSTACK_TOKEN}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
+      DEBUG: ${DEBUG:-0}
+      LS_LOG: trace
+      HOSTNAME_EXTERNAL: localstack
+      LAMBDA_EXECUTOR: docker
+      LAMBDA_DOCKER_NETWORK: fiap-esperanca-solidaria-network
+      MAIN_DOCKER_NETWORK: fiap-esperanca-solidaria-network
+      #LAMBDA_DOCKER_FLAGS: -e NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY_LAMBDA}
+    volumes:
+      - localstack-data:/var/lib/localstack
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - ./localstack-init:/etc/localstack/init/ready.d
+    networks:
+      fiap-esperanca-solidaria-network:
+        aliases:
+          - localstack 
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    ports:
+      - ${REDIS_HOST}:${REDIS_PORT}
+    volumes:
+      - redis-data:/data
+    networks:
+      - fiap-esperanca-solidaria-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: redisinsight
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - ${REDISINSIGHT_HOST}:${REDISINSIGHT_PORT}
+    volumes:
+      - redisinsight-data:/data
+    networks:
+      - fiap-esperanca-solidaria-network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.14.3
+    container_name: elasticsearch
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports:
+      - ${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT}
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - fiap-esperanca-solidaria-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -f http://localhost:${ELASTICSEARCH_PORT}/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.14.3
+    container_name: kibana
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:${ELASTICSEARCH_PORT}
+    ports:
+      - ${KIBANA_HOST}:${KIBANA_PORT}
+    networks:
+      - fiap-esperanca-solidaria-network
+
+  postgresdb:
+    image: postgres:16
+    container_name: postgres_db
+    shm_size: 128mb
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - ${POSTGRES_HOST_PORT}:${POSTGRES_CONTAINER_PORT}
+    volumes:
+      - postgresql-data:/var/lib/postgresql/data
+    networks:
+      - fiap-esperanca-solidaria-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: postgres_pgAdmin
+    ports:
+      - ${PGADMIN_PORT1}:${PGADMIN_PORT2}  
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    volumes:
+      - ./servers.json:/pgadmin4/servers.json
+    networks:
+      - fiap-esperanca-solidaria-network
+
+networks:
+  fiap-esperanca-solidaria-network:
+    external: true
+volumes:
+  localstack-data:
+  postgresql-data:
+  postgresql-server-config:
+  rabbitmq_data:
+  redis-data:
+  redisinsight-data:
+  elasticsearch-data:
+
+# commands
+  # network-ls: docker network ls
+  # network   : docker network create fiap-esperanca-solidaria-network
+  # build     : docker-compose -p fiap-esperanca-solidaria build
+  # start     : docker-compose -p fiap-esperanca-solidaria up -d
+  # recreate  : docker-compose -p fiap-esperanca-solidaria up -d --force-recreate
