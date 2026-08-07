@@ -1,0 +1,55 @@
+# ServiceAccount dedicado
+apiVersion: v1
+kind: ServiceAccount
+
+metadata:
+  name: localstack-sa
+  namespace: default
+  labels:
+    app: localstack
+
+---
+
+# Role com permissões para gerenciar pods de Lambda
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+
+metadata:
+  name: localstack-lambda-role
+  labels:
+    app: localstack
+
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods/status"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["services", "configmaps", "secrets"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+
+---
+
+# Bind da Role ao ServiceAccount
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+
+metadata:
+  name: localstack-lambda-binding
+  labels:
+    app: localstack
+
+subjects:
+  - kind: ServiceAccount
+    name: localstack-sa
+    namespace: default
+
+roleRef:
+  kind: ClusterRole
+  name: localstack-lambda-role
+  apiGroup: rbac.authorization.k8s.io

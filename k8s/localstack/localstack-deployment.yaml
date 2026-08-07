@@ -1,0 +1,176 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: localstack
+  labels:
+    app: localstack
+  annotations:
+    description: "Deployment do LocalStack para simular AWS no cluster local."
+
+spec:
+  replicas: 1
+
+  strategy:
+    type: Recreate
+
+  selector:
+    matchLabels:
+      app: localstack
+
+  template:
+    metadata:
+      labels:
+        app: localstack
+
+    spec:
+      serviceAccountName: localstack-sa
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+
+      containers:
+        - name: localstack
+          image: localstack/localstack-pro
+
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 4566
+
+          env:
+            - name: SERVICES
+              valueFrom:
+                configMapKeyRef:
+                  name: localstack-config
+                  key: SERVICES
+
+            - name: AWS_DEFAULT_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: localstack-config
+                  key: AWS_DEFAULT_REGION
+
+            - name: DEBUG
+              valueFrom:
+                configMapKeyRef:
+                  name: localstack-config
+                  key: DEBUG
+
+            - name: LS_LOG
+              valueFrom:
+                configMapKeyRef:
+                  name: localstack-config
+                  key: LS_LOG
+
+            - name: HOSTNAME_EXTERNAL
+              valueFrom:
+                configMapKeyRef:
+                  name: localstack-config
+                  key: HOSTNAME_EXTERNAL
+
+            - name: DNS_SERVER
+              valueFrom:
+                configMapKeyRef:
+                  name: localstack-config
+                  key: DNS_SERVER
+
+            - name: LOCALSTACK_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: localstack-secret
+                  key: LOCALSTACK_AUTH_TOKEN
+                  optional: false
+
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: localstack-secret
+                  key: AWS_ACCESS_KEY_ID
+                  optional: true
+
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: localstack-secret
+                  key: AWS_SECRET_ACCESS_KEY
+                  optional: true
+
+            - name: AWS_SESSION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: localstack-secret
+                  key: AWS_SESSION_TOKEN
+                  optional: true
+
+            - name: HOSTNAME_FROM_LAMBDA
+              value: "host.docker.internal"
+
+            - name: EDGE_PORT
+              value: "30466"
+
+            - name: LAMBDA_RUNTIME_EXECUTOR
+              value: "docker"
+
+            - name: GATEWAY_LISTEN
+              value: "0.0.0.0:4566"
+
+            # - name: LAMBDA_DOCKER_FLAGS
+            #   value: "--add-host=host.docker.internal:172.17.0.1 -e NEW_RELIC_LICENSE_KEY=$(NEW_RELIC_LICENSE_KEY_LAMBDA)"
+            
+            - name: LAMBDA_DOCKER_DNS
+              value: "172.17.0.1"
+
+            - name: LAMBDA_SNAP_START_ENABLED
+              value: "0"
+
+          volumeMounts:
+            - name: localstack-data
+              mountPath: /var/lib/localstack
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
+
+          securityContext:
+            privileged: true
+            runAsUser: 0
+
+          startupProbe:
+            httpGet:
+              path: /_localstack/health
+              port: 4566
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 120
+
+          readinessProbe:
+            httpGet:
+              path: /_localstack/health
+              port: 4566
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 10
+
+          livenessProbe:
+            httpGet:
+              path: /_localstack/health
+              port: 4566
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "3Gi"
+              cpu: "1500m"
+
+      volumes:
+        - name: localstack-data
+          emptyDir: {}
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock

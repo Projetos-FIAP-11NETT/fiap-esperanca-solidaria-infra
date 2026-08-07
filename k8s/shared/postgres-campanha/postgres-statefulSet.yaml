@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: StatefulSet
+
+metadata:
+  name: postgresdb-campanha
+
+  labels:
+    app: postgresdb-campanha
+
+  annotations:
+    description: "Pod para o banco de dados PostgreSQL, utilizado pela API de Campanha para armazenar informações de transações e campanha."
+
+spec:
+  serviceName: postgresdb-campanha
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: postgresdb-campanha
+
+  template:
+    metadata:
+      labels:
+        app: postgresdb-campanha
+
+    spec:
+      # Garante que o usuário do processo postgres (uid 999) tenha permissão de escrita no volume EBS
+      securityContext:
+        fsGroup: 999
+
+      containers:
+        - name: postgresdb-campanha
+          image: postgres:16
+    
+          ports:
+            - containerPort: 5432
+
+          resources:
+            requests: #minimum resources guaranteed to the container
+              memory: "256Mi"
+              cpu: "250m"
+      
+            limits: #maximum resources that the container can use
+              memory: "512Mi"
+              cpu: "500m"
+
+          env:
+            - name: POSTGRES_DB
+              value: "campanha-db"
+    
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: POSTGRES_USER
+    
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: POSTGRES_PASSWORD
+
+            # Usa subdiretório para evitar conflito com "lost+found" criado em volumes EBS recém-formatados
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+    
+      volumes:
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: postgres-pvc-campanha

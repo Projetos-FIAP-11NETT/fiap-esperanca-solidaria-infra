@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: pgadmin
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: pgadmin
+
+  template:
+    metadata:
+      labels:
+        app: pgadmin
+
+    spec:
+
+      initContainers:
+        - name: create-pgpass
+          image: busybox
+          command:
+            - sh
+            - -c
+            - |
+              echo "postgresdb-users:5432:*:$POSTGRES_USER:$POSTGRES_PASSWORD" >> /pgpass/pgpass
+              echo "postgresdb-payments:5432:*:$POSTGRES_USER:$POSTGRES_PASSWORD" >> /pgpass/pgpass
+              echo "postgresdb-orders:5432:*:$POSTGRES_USER:$POSTGRES_PASSWORD" >> /pgpass/pgpass
+              echo "postgresdb-notifications:5432:*:$POSTGRES_USER:$POSTGRES_PASSWORD" >> /pgpass/pgpass
+              chmod 600 /pgpass/pgpass
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: POSTGRES_USER
+
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: POSTGRES_PASSWORD
+
+          volumeMounts:
+            - name: pgpass
+              mountPath: /pgpass
+
+      containers:
+        - name: pgadmin
+          image: dpage/pgadmin4:latest
+
+          ports:
+            - containerPort: 80
+
+          env:
+            - name: PGADMIN_DEFAULT_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: pgadmin-secret
+                  key: PGADMIN_DEFAULT_EMAIL
+
+            - name: PGADMIN_DEFAULT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pgadmin-secret
+                  key: PGADMIN_DEFAULT_PASSWORD
+
+            - name: PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED
+              value: "False"
+
+          volumeMounts:
+            - name: pgadmin-config
+              mountPath: /pgadmin4/servers.json
+              subPath: servers.json
+
+            - name: pgpass
+              mountPath: /var/lib/pgadmin/.pgpass
+              subPath: pgpass
+
+      volumes:
+        - name: pgadmin-config
+          configMap:
+            name: pgadmin-config
+
+        - name: pgpass
+          emptyDir: {}

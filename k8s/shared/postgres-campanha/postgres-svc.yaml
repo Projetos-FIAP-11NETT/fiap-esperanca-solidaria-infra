@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: postgresdb-campanha
+  
+  labels:
+    app: postgresdb-campanha
+  
+  annotations:
+    description: "Service para o banco de dados PostgreSQL da API de Campanha, permitindo que outros pods no cluster se comuniquem com o banco de dados usando o nome do serviço como hostname."
+
+spec:
+  clusterIP: None
+
+  selector:
+    app: postgresdb-campanha
+
+  ports:
+    - port: 5432
+      targetPort: 5432
