@@ -1,0 +1,9 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: auto-ebs-sc
+provisioner: ebs.csi.aws.com   # driver padrão do AWS EBS CSI Driver (add-on), não o exclusivo do Auto Mode
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  type: gp3
+  encrypted: "true"

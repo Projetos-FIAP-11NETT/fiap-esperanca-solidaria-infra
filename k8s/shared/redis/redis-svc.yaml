@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: redis
+  labels:
+    app: redis
+  
+  annotations:
+    description: "Service para o Redis, expondo a porta 6379 para comunicação com o cache."
+
+spec:
+  type: ClusterIP
+
+  selector:
+    app: redis
+
+  ports:
+    - protocol: TCP
+      port: 6379
+      targetPort: 6379
+      name: redis

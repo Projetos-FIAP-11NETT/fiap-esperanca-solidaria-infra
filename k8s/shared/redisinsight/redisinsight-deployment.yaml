@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: redisinsight
+  labels:
+    app: redisinsight
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: redisinsight
+
+  template:
+    metadata:
+      labels:
+        app: redisinsight
+
+    spec:
+      containers:
+        - name: redisinsight
+          image: redis/redisinsight:latest
+          
+          ports:
+            - containerPort: 5540
+              name: http
+
+          volumeMounts:
+            - name: redisinsight-storage
+              mountPath: /data
+
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 5540
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 5540
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+
+      volumes:
+        - name: redisinsight-storage
+          emptyDir: {}
