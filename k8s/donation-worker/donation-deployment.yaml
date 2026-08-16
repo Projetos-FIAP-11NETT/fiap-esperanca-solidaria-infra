@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: donation-deployment
+
+  labels:
+    app: donation-api
+
+  annotations:
+    description: "Deployment para o Worker de Doações, garantindo alta disponibilidade e escalabilidade para o serviço de gerenciamento de doações."
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: donation-api
+
+  template:
+    metadata:
+      labels:
+        app: donation-api
+
+    spec:
+      containers:
+        - name: donation
+          image: projetofiap/donation-api:latest
+          
+          ports:
+            - containerPort: 8080
+          
+          resources:
+            requests: #minimum resources guaranteed to the container
+              memory: "128Mi"
+              cpu: "250m"
+            limits: #maximum resources that the container can use
+              memory: "256Mi"
+              cpu: "500m"
+          
+          env:
+            # Redis
+            - name: Redis__ConnectionString
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: REDIS_CONNECTION_STRING
+
+            # SQS
+            - name: SqsSettings__Region
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: SQS_REGION
+
+            - name: SqsSettings__AccessKey
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: SQS_ACCESS_KEY
+
+            - name: SqsSettings__SecretKey
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: SQS_SECRET_KEY
+
+            - name: SqsSettings__ServiceURL
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: SQS_SERVICE_URL
+
+            - name: SqsSettings__EmailQueueURL
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: SQS_EMAIL_QUEUE_URL
+
+            # Db
+            - name: ConnectionStrings__DefaultConnection
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: DB_USER_CONNECTION_STRING
+        
+                  

@@ -1,0 +1,25 @@
+## Example terraform.tfvars for infra/terraform/localstack
+# Copy this file to terraform.tfvars and fill values before running the deploy script.
+
+# AWS region
+aws_region = "us-east-1"
+
+# Stage name for API Gateway
+stage_name = "dev"
+
+# API and Lambda names
+api_name = "local-api-gateway-v1"
+lambda_name = "fiap-api-authorizer"
+
+# When true, API methods authorization is disabled (useful for local dev)
+# Set to "true" or "false"
+allow_dev_stage_bypass = "false"
+
+# Internal container port used by services (matches docker-compose)
+container_port = "80"
+
+# Optional: Firebase project id used by the authorizer (leave empty if not used)
+firebase_project_id = ""
+
+# Optional: JWKS metadata address for token validation (leave empty if not used)
+jwks_metadata_address = ""

@@ -9,6 +9,8 @@
 *.ps1
 *configmap.yaml
 
+*.tfvars
+
 # User-specific files
 *.rsuser
 *.suo
