@@ -10,6 +10,7 @@
 *configmap.yaml
 
 *.tfvars
+.terraform
 
 # User-specific files
 *.rsuser
