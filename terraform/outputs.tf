@@ -21,6 +21,16 @@ output "iam_role_arn" {
   value       = aws_iam_role.lambda_role.arn
 }
 
+output "sqs_donation_queue_url" {
+  description = "URL of the SQS queue"
+  value       = aws_sqs_queue.process_donation_queue.url
+}
+
+output "sqs_donation_queue_arn" {
+  description = "ARN of the SQS queue"
+  value       = aws_sqs_queue.process_donation_queue.arn
+}
+
 output "sqs_queue_url" {
   description = "URL of the SQS queue"
   value       = aws_sqs_queue.notification_queue.url

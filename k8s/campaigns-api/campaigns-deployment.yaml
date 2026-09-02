@@ -69,7 +69,7 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   name: shared-config
-                  key: SQS_EMAIL_QUEUE_URL
+                  key: SQS_DONATION_QUEUE_URL
             
             # Db
             - name: ConnectionStrings__DefaultConnection
@@ -79,7 +79,7 @@ spec:
                   key: DB_USER_CONNECTION_STRING
             
             # Redis
-            - name: Redis__ConnectionString
+            - name: ConnectionStrings_Redis
               valueFrom:
                 secretKeyRef:
                   name: shared-secret

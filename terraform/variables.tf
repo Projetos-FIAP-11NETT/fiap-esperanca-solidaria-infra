@@ -104,9 +104,15 @@ variable "iam_role_name" {
 
 # SQS Configuration
 variable "sqs_queue_name" {
-  description = "Name of the SQS queue"
+  description = "Name of the SQS notification queue"
   type        = string
   default     = "notification-queue"
+}
+
+variable "sqs_donation_queue_name" {
+  description = "Name of the SQS process donation queue"
+  type        = string
+  default     = "process-donation-payment"
 }
 
 variable "sqs_batch_size" {

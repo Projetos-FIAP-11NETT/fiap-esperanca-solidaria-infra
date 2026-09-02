@@ -483,6 +483,12 @@ resource "aws_sqs_queue" "notification_queue" {
   tags = var.tags
 }
 
+resource "aws_sqs_queue" "process_donation_queue" {
+  name = var.sqs_donation_queue_name
+
+  tags = var.tags
+}
+
 # =====================================================
 # Lambda Function
 # =====================================================
