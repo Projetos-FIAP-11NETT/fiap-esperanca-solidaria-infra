@@ -84,8 +84,6 @@ resource "aws_api_gateway_authorizer" "lambda_authorizer" {
 }
 
 locals {
-  methods = toset(["GET", "POST", "PUT", "DELETE", "PATCH"])
-
   dev_stage_bypass_enabled = var.allow_dev_stage_bypass == "true"
 
   authorization_type = local.dev_stage_bypass_enabled ? "NONE" : "CUSTOM"
@@ -93,26 +91,10 @@ locals {
   authorizer_id = local.dev_stage_bypass_enabled ? null : aws_api_gateway_authorizer.lambda_authorizer.id
 
   services = {
-    campaigns = {
-      service_name = "campaigns-api"
-      path_prefix  = "campaigns"
-    }
     users = {
-      service_name = "users-api"
       path_prefix  = "users"
     }
   }
-
-  service_method_routes = merge([
-    for service_key, service in local.services : {
-      for method in local.methods : "${service_key}:${method}" => {
-        service_key  = service_key
-        service_name = service.service_name
-        path_prefix  = service.path_prefix
-        method       = method
-      }
-    }
-  ]...)
 
   public_users_enabled = !local.dev_stage_bypass_enabled
 }
@@ -124,97 +106,136 @@ resource "aws_api_gateway_resource" "service" {
   path_part   = each.value.path_prefix
 }
 
-resource "aws_api_gateway_resource" "service_proxy" {
-  for_each    = local.services
+# ========================
+# CAMPAIGN PUBLIC AND MANAGER RESOURCES
+# ========================
+
+resource "aws_api_gateway_resource" "api" {
   rest_api_id = data.aws_api_gateway_rest_api.main.id
-  parent_id   = aws_api_gateway_resource.service[each.key].id
-  path_part   = "{proxy+}"
+  parent_id   = data.aws_api_gateway_rest_api.main.root_resource_id
+  path_part   = "api"
 }
 
-resource "aws_api_gateway_method" "service_methods" {
-  for_each      = local.service_method_routes
+resource "aws_api_gateway_resource" "api_v1" {
+  rest_api_id = data.aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.api.id
+  path_part   = "v1"
+}
+
+resource "aws_api_gateway_resource" "campaigns_public" {
+  rest_api_id = data.aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.api_v1.id
+  path_part   = "campanhas"
+}
+
+resource "aws_api_gateway_resource" "campaign_id" {
+  rest_api_id = data.aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.campaigns_public.id
+  path_part   = "{id}"
+}
+
+resource "aws_api_gateway_resource" "health" {
+  rest_api_id = data.aws_api_gateway_rest_api.main.id
+  parent_id   = data.aws_api_gateway_rest_api.main.root_resource_id
+  path_part   = "health"
+}
+
+resource "aws_api_gateway_method" "campaigns_public_get" {
   rest_api_id   = data.aws_api_gateway_rest_api.main.id
-  resource_id   = aws_api_gateway_resource.service[each.value.service_key].id
-  http_method   = each.value.method
-  authorization = local.authorization_type
-  authorizer_id = local.authorizer_id
-}
-
-resource "aws_api_gateway_integration" "service_integrations" {
-  for_each                = local.service_method_routes
-  rest_api_id             = data.aws_api_gateway_rest_api.main.id
-  resource_id             = aws_api_gateway_resource.service[each.value.service_key].id
-  http_method             = aws_api_gateway_method.service_methods[each.key].http_method
-  integration_http_method = each.value.method
-  type                    = "HTTP_PROXY"
-  uri                     = "http://${each.value.service_name}:${var.container_port}"
-}
-
-resource "aws_api_gateway_method" "service_proxy_methods" {
-  for_each      = local.service_method_routes
-  rest_api_id   = data.aws_api_gateway_rest_api.main.id
-  resource_id   = aws_api_gateway_resource.service_proxy[each.value.service_key].id
-  http_method   = each.value.method
-  authorization = local.authorization_type
-  authorizer_id = local.authorizer_id
-
-  request_parameters = {
-    "method.request.path.proxy" = true
-  }
-}
-
-resource "aws_api_gateway_integration" "service_proxy_integrations" {
-  for_each                = local.service_method_routes
-  rest_api_id             = data.aws_api_gateway_rest_api.main.id
-  resource_id             = aws_api_gateway_resource.service_proxy[each.value.service_key].id
-  http_method             = aws_api_gateway_method.service_proxy_methods[each.key].http_method
-  integration_http_method = each.value.method
-  type                    = "HTTP_PROXY"
-  uri                     = "http://${each.value.service_name}:${var.container_port}/{proxy}"
-
-  request_parameters = {
-    "integration.request.path.proxy" = "method.request.path.proxy"
-  }
-}
-
-resource "aws_api_gateway_method" "service_options" {
-  for_each      = local.services
-  rest_api_id   = data.aws_api_gateway_rest_api.main.id
-  resource_id   = aws_api_gateway_resource.service[each.key].id
-  http_method   = "OPTIONS"
+  resource_id   = aws_api_gateway_resource.campaigns_public.id
+  http_method   = "GET"
   authorization = "NONE"
 }
 
-resource "aws_api_gateway_integration" "service_options_integrations" {
-  for_each    = local.services
-  rest_api_id = data.aws_api_gateway_rest_api.main.id
-  resource_id = aws_api_gateway_resource.service[each.key].id
-  http_method = aws_api_gateway_method.service_options[each.key].http_method
-  type        = "MOCK"
+resource "aws_api_gateway_integration" "campaigns_public_get" {
+  rest_api_id             = data.aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.campaigns_public.id
+  http_method             = aws_api_gateway_method.campaigns_public_get.http_method
+  integration_http_method = "GET"
+  type                    = "HTTP_PROXY"
+  uri                     = "http://campaigns-api:${var.container_port}/api/v1/campanhas/publicas"
+}
 
-  request_templates = {
-    "application/json" = "{\"statusCode\":200}"
+resource "aws_api_gateway_method" "campaigns_post" {
+  rest_api_id   = data.aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.campaigns_public.id
+  http_method   = "POST"
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.lambda_authorizer.id
+}
+
+resource "aws_api_gateway_integration" "campaigns_post" {
+  rest_api_id             = data.aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.campaigns_public.id
+  http_method             = aws_api_gateway_method.campaigns_post.http_method
+  integration_http_method = "POST"
+  type                    = "HTTP_PROXY"
+  uri                     = "http://campaigns-api:${var.container_port}/api/v1/campanhas"
+}
+
+resource "aws_api_gateway_method" "campaign_id_get" {
+  rest_api_id   = data.aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.campaign_id.id
+  http_method   = "GET"
+  authorization = "NONE"
+
+  request_parameters = {
+    "method.request.path.id" = true
   }
 }
 
-resource "aws_api_gateway_method" "service_proxy_options" {
-  for_each      = local.services
+resource "aws_api_gateway_integration" "campaign_id_get" {
+  rest_api_id             = data.aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.campaign_id.id
+  http_method             = aws_api_gateway_method.campaign_id_get.http_method
+  integration_http_method = "GET"
+  type                    = "HTTP_PROXY"
+  uri                     = "http://campaigns-api:${var.container_port}/api/v1/campanhas/{id}"
+
+  request_parameters = {
+    "integration.request.path.id" = "method.request.path.id"
+  }
+}
+
+resource "aws_api_gateway_method" "campaign_id_put" {
   rest_api_id   = data.aws_api_gateway_rest_api.main.id
-  resource_id   = aws_api_gateway_resource.service_proxy[each.key].id
-  http_method   = "OPTIONS"
+  resource_id   = aws_api_gateway_resource.campaign_id.id
+  http_method   = "PUT"
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.lambda_authorizer.id
+
+  request_parameters = {
+    "method.request.path.id" = true
+  }
+}
+
+resource "aws_api_gateway_integration" "campaign_id_put" {
+  rest_api_id             = data.aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.campaign_id.id
+  http_method             = aws_api_gateway_method.campaign_id_put.http_method
+  integration_http_method = "PUT"
+  type                    = "HTTP_PROXY"
+  uri                     = "http://campaigns-api:${var.container_port}/api/v1/campanhas/{id}"
+
+  request_parameters = {
+    "integration.request.path.id" = "method.request.path.id"
+  }
+}
+
+resource "aws_api_gateway_method" "health_get" {
+  rest_api_id   = data.aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.health.id
+  http_method   = "GET"
   authorization = "NONE"
 }
 
-resource "aws_api_gateway_integration" "service_proxy_options_integrations" {
-  for_each    = local.services
-  rest_api_id = data.aws_api_gateway_rest_api.main.id
-  resource_id = aws_api_gateway_resource.service_proxy[each.key].id
-  http_method = aws_api_gateway_method.service_proxy_options[each.key].http_method
-  type        = "MOCK"
-
-  request_templates = {
-    "application/json" = "{\"statusCode\":200}"
-  }
+resource "aws_api_gateway_integration" "health_get" {
+  rest_api_id             = data.aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.health.id
+  http_method             = aws_api_gateway_method.health_get.http_method
+  integration_http_method = "GET"
+  type                    = "HTTP_PROXY"
+  uri                     = "http://campaigns-api:${var.container_port}/health"
 }
 
 resource "aws_lambda_permission" "api_gateway" {
@@ -383,10 +404,11 @@ resource "aws_api_gateway_deployment" "deploy" {
   rest_api_id = data.aws_api_gateway_rest_api.main.id
 
   depends_on = [
-    aws_api_gateway_integration.service_integrations,
-    aws_api_gateway_integration.service_proxy_integrations,
-    aws_api_gateway_integration.service_options_integrations,
-    aws_api_gateway_integration.service_proxy_options_integrations,
+    aws_api_gateway_integration.campaigns_public_get,
+    aws_api_gateway_integration.campaigns_post,
+    aws_api_gateway_integration.campaign_id_get,
+    aws_api_gateway_integration.campaign_id_put,
+    aws_api_gateway_integration.health_get,
     aws_lambda_permission.api_gateway,
     aws_api_gateway_integration.users_user_public_post,
     aws_api_gateway_integration.users_user_public_options,
