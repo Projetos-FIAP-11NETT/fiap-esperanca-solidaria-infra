@@ -121,6 +121,38 @@ services:
     networks:
       - fiap-esperanca-solidaria-network
 
+  campanha-api:
+    image: esperanca-solidaria/campanha-api:latest
+    container_name: campanha-api
+    depends_on:
+      localstack:
+        condition: service_healthy
+      postgresdb:
+        condition: service_healthy
+    environment:
+      # Amazon SQS (LocalStack)
+      SqsSettings__ServiceURL: ${SQS_SERVICE_URL}
+      SqsSettings__EmailQueueURL: ${SQS_EMAIL_QUEUE_URL}
+      SqsSettings__Region: ${SQS_REGION}
+      SqsSettings__AccessKey: ${SQS_ACCESS_KEY}
+      SqsSettings__SecretKey: ${SQS_SECRET_KEY}
+
+      # Firebase
+      Firebase__ProjectId: ${FIREBASE_PROJECT_ID}
+
+      # Db
+      ConnectionString__Redis: redis:${REDIS_HOST},password=${REDIS_PASSWORD}
+      ConnectionStrings__DefaultConnection: Host=postgresdb;Port=${POSTGRES_CONTAINER_PORT};Database=${CAMPANHA_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};
+
+      #TEMPORÁRIO DEPOIS TEM QUE TIRAR
+      Auth__DevBypassEnabled: true
+      ASPNETCORE_ENVIRONMENT: Development
+
+    ports:
+      - ${CAMPANHA_API_HOST_PORT}:${CAMPANHA_CONTAINER_PORT}
+    networks:
+      - fiap-esperanca-solidaria-network     
+
 networks:
   fiap-esperanca-solidaria-network:
     external: true
