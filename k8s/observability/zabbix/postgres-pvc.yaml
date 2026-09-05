@@ -1,0 +1,18 @@
+# PVC para PostgreSQL - APENAS PARA PRODUÇÃO
+# No AWS Learner Lab, NÃO aplicar este arquivo (usar emptyDir no deployment)
+# Em produção com EKS real, aplicar este PVC antes do postgres-deployment.yaml
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  # Para AWS EKS com EBS:
+  # storageClassName: gp3
+  # Para outros ambientes, ajustar conforme necessário

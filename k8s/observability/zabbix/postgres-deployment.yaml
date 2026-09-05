@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-zabbix
+  namespace: monitoring
+  labels:
+    app: postgres-zabbix
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-zabbix
+  template:
+    metadata:
+      labels:
+        app: postgres-zabbix
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+        envFrom:
+        - secretRef:
+            name: postgres-secret
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - zabbix
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - zabbix
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: postgres-storage
+        # AWS LEARNER LAB: Usar emptyDir (temporário, dados perdidos ao reiniciar pod)
+        emptyDir: {}
+        # PRODUÇÃO: Descomentar para usar PVC persistente
+        # persistentVolumeClaim:
+        #   claimName: postgres-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-server
+  namespace: monitoring
+spec:
+  selector:
+    app: postgres-zabbix
+  ports:
+  - port: 5432
+    targetPort: 5432
+  type: ClusterIP

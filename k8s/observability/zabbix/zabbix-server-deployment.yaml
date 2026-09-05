@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zabbix-server
+  namespace: monitoring
+  labels:
+    app: zabbix-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zabbix-server
+  template:
+    metadata:
+      labels:
+        app: zabbix-server
+    spec:
+      initContainers:
+      - name: init-zabbix-db
+        image: zabbix/zabbix-server-pgsql:alpine-6.4-latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "Checking if Zabbix DB needs initialization..."
+          
+          # Verificar se a tabela users tem dados
+          USER_COUNT=$(PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$DB_SERVER_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "SELECT COUNT(*) FROM users" 2>/dev/null || echo "0")
+          
+          if [ "${USER_COUNT:-0}" -eq 0 ]; then
+            echo "Users table is empty. Importing initial data..."
+            zcat /usr/share/doc/zabbix-server-postgresql/create.sql.gz | PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$DB_SERVER_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            echo "Database initialized successfully!"
+          else
+            echo "Database already has $USER_COUNT users. Skipping initialization."
+          fi
+        env:
+        - name: DB_SERVER_HOST
+          value: postgres-server
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_DB
+      containers:
+      - name: zabbix-server
+        image: zabbix/zabbix-server-pgsql:alpine-6.4-latest
+        ports:
+        - containerPort: 10051
+          name: zabbix-trapper
+        env:
+        - name: DB_SERVER_HOST
+          value: postgres-server
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_DB
+        - name: ZBX_ENABLE_SNMP_TRAPS
+          value: "true"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          tcpSocket:
+            port: 10051
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 10051
+          initialDelaySeconds: 30
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zabbix-server
+  namespace: monitoring
+spec:
+  selector:
+    app: zabbix-server
+  ports:
+  - port: 10051
+    targetPort: 10051
+    name: zabbix-trapper
+  type: ClusterIP
