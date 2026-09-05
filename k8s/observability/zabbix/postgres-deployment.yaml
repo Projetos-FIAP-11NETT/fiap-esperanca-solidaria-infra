@@ -51,11 +51,8 @@ spec:
           periodSeconds: 5
       volumes:
       - name: postgres-storage
-        # AWS LEARNER LAB: Usar emptyDir (temporário, dados perdidos ao reiniciar pod)
-        emptyDir: {}
-        # PRODUÇÃO: Descomentar para usar PVC persistente
-        # persistentVolumeClaim:
-        #   claimName: postgres-pvc
+        persistentVolumeClaim:
+          claimName: postgres-pvc
 ---
 apiVersion: v1
 kind: Service

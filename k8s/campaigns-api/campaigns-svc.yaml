@@ -3,6 +3,7 @@ kind: Service
 
 metadata:
   name: campaigns-api
+  namespace: apps
 
   labels:
     app: campaigns-api

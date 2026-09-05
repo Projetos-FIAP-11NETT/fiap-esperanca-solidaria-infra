@@ -3,6 +3,7 @@ kind: Service
 
 metadata:
   name: donation-api
+  namespace: apps
 
   labels:
     app: donation-api

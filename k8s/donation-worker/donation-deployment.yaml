@@ -3,6 +3,7 @@ kind: Deployment
 
 metadata:
   name: donation-deployment
+  namespace: apps
 
   labels:
     app: donation-api

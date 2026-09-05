@@ -3,6 +3,7 @@ kind: Deployment
 
 metadata:
   name: campaigns-deployment
+  namespace: apps
 
   labels:
     app: campaigns-api
@@ -21,11 +22,15 @@ spec:
     metadata:
       labels:
         app: campaigns-api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
 
     spec:
       containers:
         - name: campaigns
-          image: projetofiap/campaigns-api:latest
+          image: projetofiap/campanha-api:latest
 
           ports:
             - containerPort: 8080
@@ -76,7 +81,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: shared-secret
-                  key: DB_USER_CONNECTION_STRING
+                  key: DB_CAMPAIGN_CONNECTION_STRING
             
             # Redis
             - name: ConnectionStrings_Redis
