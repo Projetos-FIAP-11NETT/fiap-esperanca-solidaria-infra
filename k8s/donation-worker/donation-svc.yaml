@@ -2,11 +2,11 @@ apiVersion: v1
 kind: Service
 
 metadata:
-  name: donation-api
+  name: donation-worker
   namespace: apps
 
   labels:
-    app: donation-api
+    app: donation-worker
 
   annotations:
     description: "Service para a API de Catálogo, expondo a porta 80 para acesso interno no cluster."
@@ -15,7 +15,7 @@ spec:
   type: NodePort
 
   selector:
-    app: donation-api
+    app: donation-worker
   
   ports:
     - protocol: TCP

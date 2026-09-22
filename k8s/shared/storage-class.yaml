@@ -1,9 +1,9 @@
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: auto-ebs-sc
-provisioner: ebs.csi.aws.com   # driver padrão do AWS EBS CSI Driver (add-on), não o exclusivo do Auto Mode
+  name: hostpath
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: docker.io/hostpath
+reclaimPolicy: Delete
 volumeBindingMode: WaitForFirstConsumer
-parameters:
-  type: gp3
-  encrypted: "true"

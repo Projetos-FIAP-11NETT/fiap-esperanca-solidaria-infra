@@ -30,7 +30,7 @@ spec:
     spec:
       containers:
         - name: campaigns
-          image: projetofiap/campanha-api:latest
+          image: projetofiap/fiap-esperanca-solidaria-campanha-api:latest
 
           ports:
             - containerPort: 8080

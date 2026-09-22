@@ -24,10 +24,14 @@ spec:
         - |
           set -e
           echo "Checking if Zabbix DB needs initialization..."
-          
-          # Verificar se a tabela users tem dados
+
+          until PGPASSWORD="$POSTGRES_PASSWORD" pg_isready -h "$DB_SERVER_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1; do
+            echo "Waiting for PostgreSQL at $DB_SERVER_HOST to become ready..."
+            sleep 5
+          done
+
           USER_COUNT=$(PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$DB_SERVER_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "SELECT COUNT(*) FROM users" 2>/dev/null || echo "0")
-          
+
           if [ "${USER_COUNT:-0}" -eq 0 ]; then
             echo "Users table is empty. Importing initial data..."
             zcat /usr/share/doc/zabbix-server-postgresql/create.sql.gz | PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$DB_SERVER_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB"

@@ -3,6 +3,7 @@ kind: ConfigMap
 
 metadata:
   name: pgadmin-config
+  namespace: database
 
 data:
   servers.json: |
@@ -11,7 +12,7 @@ data:
         "1": {
           "Name": "Campanha DB",
           "Group": "Databases",
-          "Host": "postgresdb-campanha",
+          "Host": "postgresdb-campanha.apps.svc.cluster.local",
           "Port": 5432,
           "MaintenanceDB": "postgres",
           "Username": "postgresAdmin",

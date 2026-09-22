@@ -3,6 +3,7 @@ kind: Deployment
 
 metadata:
   name: pgadmin
+  namespace: database
 
 spec:
   replicas: 1
@@ -25,6 +26,7 @@ spec:
             - sh
             - -c
             - |
+              touch /pgpass/pgpass
               chmod 600 /pgpass/pgpass
           env:
             - name: POSTGRES_USER

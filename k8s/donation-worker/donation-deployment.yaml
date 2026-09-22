@@ -6,7 +6,7 @@ metadata:
   namespace: apps
 
   labels:
-    app: donation-api
+    app: donation-worker
 
   annotations:
     description: "Deployment para o Worker de Doações, garantindo alta disponibilidade e escalabilidade para o serviço de gerenciamento de doações."
@@ -16,17 +16,17 @@ spec:
 
   selector:
     matchLabels:
-      app: donation-api
+      app: donation-worker
 
   template:
     metadata:
       labels:
-        app: donation-api
+        app: donation-worker
 
     spec:
       containers:
         - name: donation
-          image: projetofiap/donation-api:latest
+          image: projetofiap/fiap-esperanca-solidaria-doacao-work:latest
           
           ports:
             - containerPort: 8080

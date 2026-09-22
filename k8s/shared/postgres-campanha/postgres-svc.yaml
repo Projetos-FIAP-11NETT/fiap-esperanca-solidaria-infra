@@ -3,6 +3,7 @@ kind: Service
 
 metadata:
   name: postgresdb-campanha
+  namespace: database
   
   labels:
     app: postgresdb-campanha
@@ -11,7 +12,7 @@ metadata:
     description: "Service para o banco de dados PostgreSQL da API de Campanha, permitindo que outros pods no cluster se comuniquem com o banco de dados usando o nome do serviço como hostname."
 
 spec:
-  clusterIP: None
+  type: ClusterIP
 
   selector:
     app: postgresdb-campanha

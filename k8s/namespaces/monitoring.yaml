@@ -4,4 +4,3 @@ metadata:
   name: monitoring
   labels:
     name: monitoring
-    app: zabbix

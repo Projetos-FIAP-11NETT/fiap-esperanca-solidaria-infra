@@ -51,8 +51,7 @@ spec:
           periodSeconds: 5
       volumes:
       - name: postgres-storage
-        persistentVolumeClaim:
-          claimName: postgres-pvc
+        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

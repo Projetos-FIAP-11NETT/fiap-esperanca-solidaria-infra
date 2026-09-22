@@ -3,7 +3,7 @@ kind: Service
 
 metadata:
   name: users-api
-
+  namespace: apps
   labels:
     app: users-api
 
@@ -20,7 +20,7 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 8080
-      nodePort: 30082
+      nodePort: 30084
   
 
 # acessar localmente: http://localhost:30082/

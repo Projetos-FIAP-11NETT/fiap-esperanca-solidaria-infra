@@ -26,10 +26,10 @@ spec:
           value: "admin"
         - name: GF_SECURITY_ADMIN_PASSWORD
           value: "admin"
-        - name: GF_INSTALL_PLUGINS
-          value: "alexanderzobnin-zabbix-app"
         - name: GF_USERS_ALLOW_SIGN_UP
           value: "false"
+        - name: GF_INSTALL_PLUGINS
+          value: ""
         volumeMounts:
         - name: grafana-storage
           mountPath: /var/lib/grafana
@@ -56,7 +56,7 @@ spec:
           periodSeconds: 5
       volumes:
       - name: grafana-storage
-        emptyDir: {}  # Usando emptyDir para compatibilidade com AWS Learner Lab
+        emptyDir: {}
       - name: grafana-datasources
         configMap:
           name: grafana-datasources

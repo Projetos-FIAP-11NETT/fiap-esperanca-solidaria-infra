@@ -3,6 +3,7 @@ kind: ConfigMap
 
 metadata:
   name: localstack-config
+  namespace: localstack
   labels:
     app: localstack
   annotations:

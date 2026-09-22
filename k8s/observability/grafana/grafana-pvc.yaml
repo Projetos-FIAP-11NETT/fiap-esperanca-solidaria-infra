@@ -6,7 +6,8 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: hostpath
   resources:
     requests:
       storage: 5Gi
-  storageClassName: gp2
+
