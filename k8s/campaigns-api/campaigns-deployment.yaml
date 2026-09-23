@@ -89,3 +89,9 @@ spec:
                 secretKeyRef:
                   name: shared-secret
                   key: REDIS_CONNECTION_STRING
+
+            # Observabilidade
+            - name: OpenTelemetry__ServiceName
+              value: "campanha-api"
+            - name: OpenTelemetry__TempoEndpoint
+              value: "http://tempo.monitoring.svc.cluster.local:4318/v1/traces"

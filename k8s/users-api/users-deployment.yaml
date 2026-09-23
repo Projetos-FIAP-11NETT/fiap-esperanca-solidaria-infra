@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
         - name: users
-          image: projetofiap/users-api:latest
+          image: projetofiap/fiap-esperanca-solidaria-usuario-api:latest
           
           ports:
             - containerPort: 8080
@@ -77,14 +77,26 @@ spec:
                   key: DB_USER_CONNECTION_STRING
                   
             # Firebase
-            - name: Firebase__CredentialPath
+            - name: Firebase__CredentialJson
               valueFrom:
                 secretKeyRef:
                   name: shared-secret
-                  key: FIREBASE_CREDENTIAL_PATH
+                  key: FIREBASE_CREDENTIALJSON
                   
             - name: Firebase__ApiKey
               valueFrom:
                 secretKeyRef:
                   name: shared-secret
                   key: FIREBASE_APIKEY
+
+            - name: Firebase__ProjectId
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: FIREBASE_PROJECT_ID
+
+            # Observabilidade
+            - name: OpenTelemetry__ServiceName
+              value: "usuario-api"
+            - name: OpenTelemetry__TempoEndpoint
+              value: "http://tempo.monitoring.svc.cluster.local:4318/v1/traces"

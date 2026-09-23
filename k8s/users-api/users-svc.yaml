@@ -23,4 +23,4 @@ spec:
       nodePort: 30084
   
 
-# acessar localmente: http://localhost:30082/
+# acessar localmente: http://localhost:30084/scalar
