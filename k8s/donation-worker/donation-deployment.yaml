@@ -47,42 +47,52 @@ spec:
                   name: shared-secret
                   key: REDIS_CONNECTION_STRING
 
+            # AWS / LocalStack credentials
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: AWS_SESSION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: AWS_SESSION_TOKEN
+                  optional: true
+            - name: AWS_DEFAULT_REGION
+              value: "us-east-1"
+            - name: AWS_REGION
+              value: "us-east-1"
+
             # SQS
-            - name: SqsSettings__Region
+            - name: Sqs__QueueUrl
               valueFrom:
-                secretKeyRef:
-                  name: shared-secret
-                  key: SQS_REGION
+                configMapKeyRef:
+                  name: shared-config
+                  key: SQS_DONATION_QUEUE_URL
 
-            - name: SqsSettings__AccessKey
-              valueFrom:
-                secretKeyRef:
-                  name: shared-secret
-                  key: SQS_ACCESS_KEY
-
-            - name: SqsSettings__SecretKey
-              valueFrom:
-                secretKeyRef:
-                  name: shared-secret
-                  key: SQS_SECRET_KEY
-
-            - name: SqsSettings__ServiceURL
+            - name: Aws__ServiceUrl
               valueFrom:
                 configMapKeyRef:
                   name: shared-config
                   key: SQS_SERVICE_URL
 
-            - name: SqsSettings__EmailQueueURL
-              valueFrom:
-                configMapKeyRef:
-                  name: shared-config
-                  key: SQS_EMAIL_QUEUE_URL
-
             # Db
-            - name: ConnectionStrings__DefaultConnection
+            - name: ConnectionStrings__Postgres
               valueFrom:
                 secretKeyRef:
                   name: shared-secret
                   key: DB_USER_CONNECTION_STRING
+
+            # Observabilidade
+            - name: OpenTelemetry__ServiceName
+              value: "doacao-worker"
+            - name: OpenTelemetry__TempoEndpoint
+              value: "http://tempo.monitoring.svc.cluster.local:4318/v1/traces"
         
                   
