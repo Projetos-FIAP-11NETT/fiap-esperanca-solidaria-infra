@@ -26,14 +26,7 @@ spec:
             - sh
             - -c
             - |
-<<<<<<< HEAD
               touch /pgpass/pgpass
-=======
-              echo "postgresdb-users:5432:*:$POSTGRES_USER:$POSTGRES_PASSWORD" >> /pgpass/pgpass
-              echo "postgresdb-payments:5432:*:$POSTGRES_USER:$POSTGRES_PASSWORD" >> /pgpass/pgpass
-              echo "postgresdb-orders:5432:*:$POSTGRES_USER:$POSTGRES_PASSWORD" >> /pgpass/pgpass
-              echo "postgresdb-notifications:5432:*:$POSTGRES_USER:$POSTGRES_PASSWORD" >> /pgpass/pgpass
->>>>>>> 7e7ed2898f5c5e13bd647af540a325f0b9fb015a
               chmod 600 /pgpass/pgpass
           env:
             - name: POSTGRES_USER

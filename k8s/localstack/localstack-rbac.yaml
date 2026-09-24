@@ -47,11 +47,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: localstack-sa
-<<<<<<< HEAD
     namespace: localstack
-=======
-    namespace: default
->>>>>>> 7e7ed2898f5c5e13bd647af540a325f0b9fb015a
 
 roleRef:
   kind: ClusterRole
