@@ -3,6 +3,7 @@ kind: Deployment
 
 metadata:
   name: redis
+  namespace: database
   labels:
     app: redis
 

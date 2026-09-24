@@ -3,6 +3,7 @@ kind: Deployment
 
 metadata:
   name: redisinsight
+  namespace: database
   labels:
     app: redisinsight
 

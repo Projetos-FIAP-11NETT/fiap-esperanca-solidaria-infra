@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: donation-deployment
+  namespace: apps
+
+  labels:
+    app: donation-worker
+
+  annotations:
+    description: "Deployment para o Worker de Doações, garantindo alta disponibilidade e escalabilidade para o serviço de gerenciamento de doações."
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: donation-worker
+
+  template:
+    metadata:
+      labels:
+        app: donation-worker
+
+    spec:
+      containers:
+        - name: donation
+          image: projetofiap/fiap-esperanca-solidaria-doacao-work:latest
+          
+          ports:
+            - containerPort: 8080
+          
+          resources:
+            requests: #minimum resources guaranteed to the container
+              memory: "128Mi"
+              cpu: "250m"
+            limits: #maximum resources that the container can use
+              memory: "256Mi"
+              cpu: "500m"
+          
+          env:
+            # Redis
+            - name: Redis__ConnectionString
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: REDIS_CONNECTION_STRING
+
+            # AWS / LocalStack credentials
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: AWS_SESSION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: AWS_SESSION_TOKEN
+                  optional: true
+            - name: AWS_DEFAULT_REGION
+              value: "us-east-1"
+            - name: AWS_REGION
+              value: "us-east-1"
+
+            # SQS
+            - name: Sqs__QueueUrl
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: SQS_DONATION_QUEUE_URL
+
+            - name: Aws__ServiceUrl
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: SQS_SERVICE_URL
+
+            # Db
+            - name: ConnectionStrings__Postgres
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: DB_USER_CONNECTION_STRING
+
+            # Observabilidade
+            - name: OpenTelemetry__ServiceName
+              value: "doacao-worker"
+            - name: OpenTelemetry__TempoEndpoint
+              value: "http://tempo.monitoring.svc.cluster.local:4318/v1/traces"
+        
+                  

@@ -3,6 +3,7 @@ kind: Deployment
 
 metadata:
   name: localstack
+  namespace: localstack
   labels:
     app: localstack
   annotations:
@@ -30,7 +31,9 @@ spec:
 
       containers:
         - name: localstack
-          image: localstack/localstack-pro
+          #image: localstack/localstack-pro
+          image: localstack/localstack:latest
+
 
           imagePullPolicy: IfNotPresent
 

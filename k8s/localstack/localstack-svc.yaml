@@ -3,6 +3,7 @@ kind: Service
 
 metadata:
   name: localstack
+  namespace: localstack
   labels:
     app: localstack
   annotations:

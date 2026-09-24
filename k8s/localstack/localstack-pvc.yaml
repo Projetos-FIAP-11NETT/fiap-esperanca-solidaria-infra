@@ -3,6 +3,7 @@ kind: PersistentVolumeClaim
 
 metadata:
   name: localstack-pvc
+  namespace: localstack
   labels:
     app: localstack
   annotations:
@@ -11,6 +12,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: hostpath
   resources:
     requests:
       storage: 5Gi
