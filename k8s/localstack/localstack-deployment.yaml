@@ -3,7 +3,10 @@ kind: Deployment
 
 metadata:
   name: localstack
+<<<<<<< HEAD
   namespace: localstack
+=======
+>>>>>>> 7e7ed2898f5c5e13bd647af540a325f0b9fb015a
   labels:
     app: localstack
   annotations:

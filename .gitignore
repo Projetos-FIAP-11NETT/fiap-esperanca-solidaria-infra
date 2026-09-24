@@ -3,6 +3,7 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+<<<<<<< HEAD
 #secrets
 *secret.yaml
 *firebase-service-account.json
@@ -12,6 +13,8 @@
 *.tfvars
 .terraform
 
+=======
+>>>>>>> 7e7ed2898f5c5e13bd647af540a325f0b9fb015a
 # User-specific files
 *.rsuser
 *.suo
