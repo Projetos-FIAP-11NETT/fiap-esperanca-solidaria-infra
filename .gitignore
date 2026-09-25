@@ -10,7 +10,14 @@
 *configmap.yaml
 
 *.tfvars
+!*.tfvars.example
 .terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
 
 # User-specific files
 *.rsuser

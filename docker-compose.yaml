@@ -57,38 +57,6 @@ services:
     networks:
       - fiap-esperanca-solidaria-network
 
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.14.3
-    container_name: elasticsearch
-    environment:
-      discovery.type: single-node
-      xpack.security.enabled: "false"
-      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
-    ports:
-      - ${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT}
-    volumes:
-      - elasticsearch-data:/usr/share/elasticsearch/data
-    networks:
-      - fiap-esperanca-solidaria-network
-    healthcheck:
-      test: ["CMD-SHELL", "curl -s -f http://localhost:${ELASTICSEARCH_PORT}/_cluster/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.14.3
-    container_name: kibana
-    depends_on:
-      elasticsearch:
-        condition: service_healthy
-    environment:
-      ELASTICSEARCH_HOSTS: http://elasticsearch:${ELASTICSEARCH_PORT}
-    ports:
-      - ${KIBANA_HOST}:${KIBANA_PORT}
-    networks:
-      - fiap-esperanca-solidaria-network
-
   postgresdb:
     image: postgres:16
     container_name: postgres_db
@@ -121,6 +89,90 @@ services:
     networks:
       - fiap-esperanca-solidaria-network
 
+  # Imagens publicadas no Docker Hub pelos respectivos repositorios (cd-release.yml de cada um).
+  # Dentro da rede do compose o localstack e acessado por http://localstack:4566.
+  campaigns-api:
+    image: projetofiap/fiap-esperanca-solidaria-campanha-api:latest
+    container_name: campaigns-api
+    depends_on:
+      postgresdb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      localstack:
+        condition: service_started
+    ports:
+      - ${CAMPAIGNS_API_PORT}:${CONTAINER_PORT}
+    environment:
+      SqsSettings__Region: ${SQS_REGION}
+      SqsSettings__AccessKey: ${SQS_ACCESS_KEY}
+      SqsSettings__SecretKey: ${SQS_SECRET_KEY}
+      SqsSettings__ServiceURL: http://localstack:4566
+      SqsSettings__EmailQueueURL: http://localstack:4566/000000000000/process-donation-payment
+      # S3 (imagem de capa da campanha) — mesmo LocalStack e credenciais fake do SQS.
+      # ServiceUrl e o endereco dentro da rede do compose; PublicBaseUrl e o que o
+      # navegador resolve (porta do LocalStack no host) e vira o prefixo da URL devolvida.
+      S3Settings__Region: ${SQS_REGION}
+      S3Settings__AccessKey: ${SQS_ACCESS_KEY}
+      S3Settings__SecretKey: ${SQS_SECRET_KEY}
+      S3Settings__ServiceUrl: http://localstack:4566
+      S3Settings__PublicBaseUrl: http://localhost:4566
+      ConnectionStrings__DefaultConnection: Host=postgresdb;Port=${POSTGRES_CONTAINER_PORT};Database=campanha-db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};
+      ConnectionStrings__Redis: redis:${REDIS_PORT},password=${REDIS_PASSWORD},abortConnect=false
+    networks:
+      - fiap-esperanca-solidaria-network
+
+  users-api:
+    image: projetofiap/fiap-esperanca-solidaria-usuario-api:latest
+    container_name: users-api
+    depends_on:
+      postgresdb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      localstack:
+        condition: service_started
+    ports:
+      - ${USERS_API_PORT}:${CONTAINER_PORT}
+    environment:
+      SqsSettings__Region: ${SQS_REGION}
+      SqsSettings__AccessKey: ${SQS_ACCESS_KEY}
+      SqsSettings__SecretKey: ${SQS_SECRET_KEY}
+      SqsSettings__ServiceURL: http://localstack:4566
+      SqsSettings__EmailQueueURL: http://localstack:4566/000000000000/notification-queue
+      # S3 (foto de perfil) — mesmo LocalStack e credenciais fake do SQS.
+      S3Settings__Region: ${SQS_REGION}
+      S3Settings__AccessKey: ${SQS_ACCESS_KEY}
+      S3Settings__SecretKey: ${SQS_SECRET_KEY}
+      S3Settings__ServiceUrl: http://localstack:4566
+      S3Settings__PublicBaseUrl: http://localhost:4566
+      ConnectionStrings__DefaultConnection: Host=postgresdb;Port=${POSTGRES_CONTAINER_PORT};Database=users-db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};
+      ConnectionStrings__Redis: redis:${REDIS_PORT},password=${REDIS_PASSWORD},abortConnect=false
+      Firebase__CredentialJson: ${FIREBASE_CREDENTIAL_JSON}
+      Firebase__ApiKey: ${FIREBASE_APIKEY}
+      Firebase__ProjectId: esperancasolidaria
+    networks:
+      - fiap-esperanca-solidaria-network
+
+  donation-worker:
+    image: projetofiap/fiap-esperanca-solidaria-doacao-work:latest
+    container_name: donation-worker
+    depends_on:
+      postgresdb:
+        condition: service_healthy
+      localstack:
+        condition: service_started
+    environment:
+      # O worker atualiza Donation/Campaigns, que vivem no campanha-db (schema fundraising) — nao no doacao-db.
+      ConnectionStrings__Postgres: Host=postgresdb;Port=${POSTGRES_CONTAINER_PORT};Database=campanha-db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Search Path=fundraising;
+      Sqs__QueueUrl: http://localstack:4566/000000000000/process-donation-payment
+      Aws__Region: ${SQS_REGION}
+      Aws__ServiceUrl: http://localstack:4566
+      AWS_ACCESS_KEY_ID: ${SQS_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${SQS_SECRET_KEY}
+    networks:
+      - fiap-esperanca-solidaria-network
+
 networks:
   fiap-esperanca-solidaria-network:
     external: true
@@ -131,7 +183,6 @@ volumes:
   rabbitmq_data:
   redis-data:
   redisinsight-data:
-  elasticsearch-data:
 
 # commands
   # network-ls: docker network ls
