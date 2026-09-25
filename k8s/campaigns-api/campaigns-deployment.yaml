@@ -31,6 +31,7 @@ spec:
       containers:
         - name: campaigns
           image: projetofiap/fiap-esperanca-solidaria-campanha-api:latest
+          imagePullPolicy: Always
 
           ports:
             - containerPort: 8080
@@ -45,6 +46,9 @@ spec:
               cpu: "500m"
 
           env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Kubernetes"
+
             # SQS
             - name: SqsSettings__Region
               valueFrom:
@@ -84,7 +88,7 @@ spec:
                   key: DB_CAMPAIGN_CONNECTION_STRING
             
             # Redis
-            - name: ConnectionStrings_Redis
+            - name: ConnectionStrings__Redis
               valueFrom:
                 secretKeyRef:
                   name: shared-secret
@@ -95,3 +99,10 @@ spec:
               value: "campanha-api"
             - name: OpenTelemetry__TempoEndpoint
               value: "http://tempo.monitoring.svc.cluster.local:4318/v1/traces"
+
+            # Cors
+            - name: Cors__AllowedOrigins__0
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: CORS_ALLOWED_ORIGINS
