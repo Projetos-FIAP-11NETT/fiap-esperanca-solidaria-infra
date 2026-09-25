@@ -57,38 +57,6 @@ services:
     networks:
       - fiap-esperanca-solidaria-network
 
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.14.3
-    container_name: elasticsearch
-    environment:
-      discovery.type: single-node
-      xpack.security.enabled: "false"
-      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
-    ports:
-      - ${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT}
-    volumes:
-      - elasticsearch-data:/usr/share/elasticsearch/data
-    networks:
-      - fiap-esperanca-solidaria-network
-    healthcheck:
-      test: ["CMD-SHELL", "curl -s -f http://localhost:${ELASTICSEARCH_PORT}/_cluster/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.14.3
-    container_name: kibana
-    depends_on:
-      elasticsearch:
-        condition: service_healthy
-    environment:
-      ELASTICSEARCH_HOSTS: http://elasticsearch:${ELASTICSEARCH_PORT}
-    ports:
-      - ${KIBANA_HOST}:${KIBANA_PORT}
-    networks:
-      - fiap-esperanca-solidaria-network
-
   postgresdb:
     image: postgres:16
     container_name: postgres_db
@@ -215,7 +183,6 @@ volumes:
   rabbitmq_data:
   redis-data:
   redisinsight-data:
-  elasticsearch-data:
 
 # commands
   # network-ls: docker network ls

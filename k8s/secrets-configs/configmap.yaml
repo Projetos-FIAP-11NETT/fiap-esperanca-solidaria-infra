@@ -11,10 +11,6 @@ data:
   # Redis (namespace "database")
   REDIS_ADDRESS: "redis.database.svc.cluster.local"
   REDIS_PORT: "6379"
-  # Elasticsearch (namespace "database")
-  ELASTICSEARCH_URI: "http://elasticsearch.database.svc.cluster.local:9200"
-  ELASTICSEARCH_INDEX: "games"
-
   # LocalStack (namespace "localstack")
   LOCALSTACK_ENDPOINT: "http://localstack.localstack.svc.cluster.local:4566/"
 

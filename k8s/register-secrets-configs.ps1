@@ -12,7 +12,7 @@
 # Namespaces (ver k8s/namespaces/*.yaml): apps, database, localstack, monitoring.
 # shared-config/shared-secret vao para "apps" (onde rodam campaigns-api/users-api/donation-worker).
 # localstack-secret vai para "localstack" (onde roda o pod do LocalStack).
-# Postgres/Redis/Elasticsearch estao em "database"; por isso as connection strings abaixo
+# Postgres/Redis estao em "database"; por isso as connection strings abaixo
 # usam o FQDN "<service>.database.svc.cluster.local" em vez do nome curto do Service.
 
 $ErrorActionPreference = "Stop"
