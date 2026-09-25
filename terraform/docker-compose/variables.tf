@@ -24,8 +24,9 @@ variable "allow_dev_stage_bypass" {
 }
 
 variable "container_port" {
-  type    = string
-  default = "8080"
+  description = "Porta exposta pelos containers campaigns-api/users-api no docker-compose, usada pelo API Gateway para chamar-los via HTTP_PROXY"
+  type        = string
+  default     = "8080"
 }
 
 variable "firebase_project_id" {
@@ -40,7 +41,7 @@ variable "jwks_metadata_address" {
 
 variable "localstack_port" {
   type    = string
-  default = "30466"
+  default = "4566"
 }
 
 
@@ -61,7 +62,7 @@ variable "aws_secret_key" {
 variable "localstack_endpoint" {
   description = "LocalStack endpoint URL"
   type        = string
-  default     = "http://localhost:30466"
+  default     = "http://localhost:4566"
 }
 
 # Lambda Configuration

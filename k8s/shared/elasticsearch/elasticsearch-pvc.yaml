@@ -3,6 +3,7 @@ kind: PersistentVolumeClaim
 
 metadata:
   name: elasticsearch-pvc
+  namespace: database
 
   labels:
     app: elasticsearch
@@ -14,7 +15,7 @@ spec:
   accessModes:
     - ReadWriteOnce
     
-  storageClassName: auto-ebs-sc
+  storageClassName: hostpath
 
   resources:
     requests:

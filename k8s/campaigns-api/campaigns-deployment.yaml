@@ -75,16 +75,46 @@ spec:
                 configMapKeyRef:
                   name: shared-config
                   key: SQS_DONATION_QUEUE_URL
-            
+
+            # S3 (imagem de capa da campanha) — mesmo LocalStack e credenciais fake do SQS.
+            # ServiceUrl e o endereco dentro do cluster; PublicBaseUrl e o que o navegador
+            # resolve (NodePort do LocalStack) e vira o prefixo da URL devolvida no upload.
+            - name: S3Settings__Region
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: SQS_REGION
+
+            - name: S3Settings__AccessKey
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: SQS_ACCESS_KEY
+
+            - name: S3Settings__SecretKey
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: SQS_SECRET_KEY
+
+            - name: S3Settings__ServiceUrl
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: SQS_SERVICE_URL
+
+            - name: S3Settings__PublicBaseUrl
+              value: "http://localhost:30466"
+
             # Db
             - name: ConnectionStrings__DefaultConnection
               valueFrom:
                 secretKeyRef:
                   name: shared-secret
                   key: DB_CAMPAIGN_CONNECTION_STRING
-            
+
             # Redis
-            - name: ConnectionStrings_Redis
+            - name: ConnectionStrings__Redis
               valueFrom:
                 secretKeyRef:
                   name: shared-secret

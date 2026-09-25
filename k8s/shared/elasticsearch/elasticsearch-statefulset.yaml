@@ -3,6 +3,7 @@ kind: StatefulSet
 
 metadata:
   name: elasticsearch
+  namespace: database
   labels:
     app: elasticsearch
 
