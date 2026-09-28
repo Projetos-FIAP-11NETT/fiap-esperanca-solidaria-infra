@@ -21,7 +21,6 @@ isoladamente e apontam pra cá quando o assunto é "rodar tudo junto".
 - [Ambiente alternativo: docker-compose](#ambiente-alternativo-docker-compose)
 - [Rotina do dia a dia](#rotina-do-dia-a-dia)
 - [Troubleshooting](#troubleshooting)
-- [Pendências conhecidas](#pendências-conhecidas)
 
 ---
 
@@ -53,7 +52,7 @@ isoladamente e apontam pra cá quando o assunto é "rodar tudo junto".
 └───────────────────────────────────────────────────────────────┘
 ```
 
-\* A publicação de e-mail pelo `usuario-api` existe mas está desligada no código (ver pendências).
+\* A publicação de e-mail pelo `usuario-api` existe mas está desligada no código.
 
 **Fluxo de uma doação (ponta a ponta):**
 
@@ -435,17 +434,3 @@ kubectl rollout restart deployment/campaigns-deployment -n apps   # ou users-dep
 | Erro de CORS no front | O front só fala com o gateway; confira se a URL do gateway está atualizada (`npm run gateway:sync`). O `Cors__AllowedOrigins__0` das APIs só importa para quem as chama direto (Scalar, testes locais). |
 | Doação fica `Pending` | Worker parado, fila inexistente (terraform não aplicado) ou forma de pagamento sem taxa configurada no worker (Boleto). |
 | Login falha com erro do Firebase | `FIREBASE_APIKEY`/`FIREBASE_CREDENTIALJSON` incorretos no `shared-secret`. |
-
----
-
-## Pendências conhecidas
-
-- `k8s/users-api/users-deployment.yaml` não define `Cors__AllowedOrigins__0` (hoje configurado manualmente
-  com `kubectl set env`); o `campaigns-deployment.yaml` referencia `CORS_ALLOWED_ORIGINS`, que o
-  `register-secrets-configs.ps1` não cria.
-- O script de secrets não cria `shared-secret`/`pgadmin-secret` no namespace `database` nem o
-  `postgres-secret` do Zabbix.
-- `docker-compose.yaml` referencia `./localstack-init`, ausente no repo.
-- O `usuario-api` tem a publicação do e-mail de boas-vindas comentada no `CreateUserCommandHandler`, então
-  a `notification-queue`/`email-function` não recebe mensagens no fluxo normal.
-- `ses_verified_email` ainda usa o domínio herdado `no-reply@fiapcloudgames.local`.
