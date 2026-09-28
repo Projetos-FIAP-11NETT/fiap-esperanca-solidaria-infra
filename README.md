@@ -31,7 +31,7 @@ isoladamente e apontam pra cá quando o assunto é "rodar tudo junto".
                        ┌──────────────────────────────┐
   Navegador ──────────▶│  campanha-web (Vite :5173)   │
                        └──────────────┬───────────────┘
-                                      │ HTTP (tudo via gateway, exceto CRUD do gestor*)
+                                      │ HTTP (todas as chamadas via gateway)
                                       ▼
 ┌──────────────────────── LocalStack Pro (namespace localstack, NodePort 30466) ────────────────────────┐
 │  API Gateway REST "local-api-gateway-v1" (stage dev)                                                 │
@@ -53,9 +53,7 @@ isoladamente e apontam pra cá quando o assunto é "rodar tudo junto".
 └───────────────────────────────────────────────────────────────┘
 ```
 
-\* O CRUD de campanhas do gestor no front ainda chama o `campanha-api` direto (porta 30081/5054); as
-rotas equivalentes já existem no gateway. Ver [Pendências conhecidas](#pendências-conhecidas).
-A publicação de e-mail pelo `usuario-api` existe mas está desligada no código (ver pendências).
+\* A publicação de e-mail pelo `usuario-api` existe mas está desligada no código (ver pendências).
 
 **Fluxo de uma doação (ponta a ponta):**
 
@@ -434,7 +432,7 @@ kubectl rollout restart deployment/campaigns-deployment -n apps   # ou users-dep
 | Rotas `CUSTOM` retornam `500`/timeout | Port-forward `4566` não está aberto, ou o `function.zip` do authorizer está desatualizado. |
 | Rotas `CUSTOM` retornam `403` | Token sem o papel exigido (claim `roles`) ou rota ausente da tabela de regras do authorizer. |
 | Pod `CreateContainerConfigError` | Falta alguma chave de configmap/secret (ex.: `CORS_ALLOWED_ORIGINS`). `kubectl describe pod <pod> -n apps`. |
-| Erro de CORS no front | Origem `http://localhost:5173` não está em `Cors__AllowedOrigins__0` da API chamada. |
+| Erro de CORS no front | O front só fala com o gateway; confira se a URL do gateway está atualizada (`npm run gateway:sync`). O `Cors__AllowedOrigins__0` das APIs só importa para quem as chama direto (Scalar, testes locais). |
 | Doação fica `Pending` | Worker parado, fila inexistente (terraform não aplicado) ou forma de pagamento sem taxa configurada no worker (Boleto). |
 | Login falha com erro do Firebase | `FIREBASE_APIKEY`/`FIREBASE_CREDENTIALJSON` incorretos no `shared-secret`. |
 
@@ -447,7 +445,6 @@ kubectl rollout restart deployment/campaigns-deployment -n apps   # ou users-dep
   `register-secrets-configs.ps1` não cria.
 - O script de secrets não cria `shared-secret`/`pgadmin-secret` no namespace `database` nem o
   `postgres-secret` do Zabbix.
-- O front ainda faz o CRUD de campanhas do gestor direto no `campanha-api`, sem passar pelo gateway.
 - `docker-compose.yaml` referencia `./localstack-init`, ausente no repo.
 - O `usuario-api` tem a publicação do e-mail de boas-vindas comentada no `CreateUserCommandHandler`, então
   a `notification-queue`/`email-function` não recebe mensagens no fluxo normal.
