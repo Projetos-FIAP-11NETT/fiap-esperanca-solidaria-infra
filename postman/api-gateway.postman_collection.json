@@ -1,0 +1,710 @@
+{
+  "info": {
+    "_postman_id": "d4e1f2a0-7c3b-4e1a-9f2d-esperanca-gateway-0001",
+    "name": "Esperança Solidária - API Gateway",
+    "description": "Coleção montada contra o API Gateway (LocalStack) definido em `terraform/docker-compose/main.tf`, não direto nos serviços. Cobre o fluxo de Usuário (cadastro/login/refresh/logout), Campanha (criação + consulta) e Doação (criação + consulta) na ordem em que uma execução ponta a ponta precisa rodar.\n\n**Como obter `baseUrl`**\nDepois de `terraform apply` (`terraform/docker-compose`), rode `terraform output invoke_url` ou monte à mão:\n`http://localhost.localstack.cloud:4566/_aws/execute-api/{api_id}/{stage_name}` — `api_id` sai de `terraform output api_id` e `stage_name` é `dev` por padrão (`variables.tf`). Ajuste a variável de coleção `baseUrl`.\n\n**Autorização**\nO gateway usa um Lambda Authorizer (`CUSTOM`) que espera `Authorization: Bearer <idToken>` (o `idToken` retornado pelo Login). Rotas marcadas `[Public]` nas descrições abaixo não exigem header. Em dev, se `allow_dev_stage_bypass=true` no terraform, a autorização vira `NONE` e o front (ou você) manda `X-Dev-Role: Doador` / `X-Dev-Role: GestorONG` direto — ver `AuthorizationRulesService` no lambda-authorizer.\n\n**Lacuna conhecida:** `POST /User/GestorONG` (cadastro de gestor) não tem rota no gateway hoje (comentário no próprio `main.tf`, linha ~606-608: \"o front não usa\") — só existe direto na usuario-api. A pasta 1 inclui essa chamada apontando pra `usersApiDirectUrl` como alternativa, com o aviso de bootstrap (ver descrição da própria request).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost.localstack.cloud:4566/_aws/execute-api/REPLACE_WITH_API_ID/dev",
+      "type": "string"
+    },
+    {
+      "key": "usersApiDirectUrl",
+      "value": "http://localhost:5043",
+      "type": "string",
+      "description": "Usuario-api direto (sem gateway) — só pra rotas ainda não roteadas, ex.: cadastro de GestorONG."
+    },
+    {
+      "key": "doadorName",
+      "value": "Doador Teste",
+      "type": "string"
+    },
+    {
+      "key": "doadorEmail",
+      "value": "doador.teste@esperancasolidaria.dev",
+      "type": "string"
+    },
+    {
+      "key": "doadorPassword",
+      "value": "SenhaForte@123",
+      "type": "string"
+    },
+    {
+      "key": "doadorCpf",
+      "value": "52998224725",
+      "type": "string"
+    },
+    {
+      "key": "doadorIdToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "doadorRefreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "doadorSessionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "gestorName",
+      "value": "Gestor Teste",
+      "type": "string"
+    },
+    {
+      "key": "gestorEmail",
+      "value": "gestor.teste@esperancasolidaria.dev",
+      "type": "string"
+    },
+    {
+      "key": "gestorPassword",
+      "value": "SenhaForte@123",
+      "type": "string"
+    },
+    {
+      "key": "gestorCpf",
+      "value": "15350946056",
+      "type": "string"
+    },
+    {
+      "key": "gestorIdToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "gestorRefreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "gestorSessionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "campaignId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "campaignTitle",
+      "value": "Skate Para Todos - Turma 2026",
+      "type": "string"
+    },
+    {
+      "key": "donationId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Usuário",
+      "item": [
+        {
+          "name": "Cadastro de Doador",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/api/v1/User/Doador",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "api",
+                "v1",
+                "User",
+                "Doador"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{doadorName}}\",\n  \"email\": \"{{doadorEmail}}\",\n  \"password\": \"{{doadorPassword}}\",\n  \"cpf\": \"{{doadorCpf}}\",\n  \"image\": null\n}"
+            },
+            "description": "[Public] POST /api/v1/User/Doador na usuario-api. Cadastro público de doador — devolve 201 sem corpo. Rode uma vez; se o e-mail já existir, siga direto pro Login."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Cadastro criado (201) ou já existente (400)', function () {",
+                  "    pm.expect([201, 400]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Doador",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/api/v1/User/Login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "api",
+                "v1",
+                "User",
+                "Login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{doadorEmail}}\",\n  \"password\": \"{{doadorPassword}}\"\n}"
+            },
+            "description": "[Public] POST /api/v1/User/Login. Autentica contra o Firebase e abre uma sessão (Redis) do lado da usuario-api. Salva idToken/refreshToken/sessionId do doador nas variáveis de coleção — usados nas requests de Doação."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login com sucesso', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "pm.collectionVariables.set('doadorIdToken', json.idToken);",
+                  "pm.collectionVariables.set('doadorRefreshToken', json.refreshToken);",
+                  "pm.collectionVariables.set('doadorSessionId', json.sessionId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cadastro de Gestor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{gestorIdToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/api/v1/User/GestorONG",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "api",
+                "v1",
+                "User",
+                "GestorONG"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{gestorName}}\",\n  \"email\": \"{{gestorEmail}}\",\n  \"password\": \"{{gestorPassword}}\",\n  \"cpf\": \"{{gestorCpf}}\",\n  \"image\": null\n}"
+            },
+            "description": "[GestorONG] `POST /users/api/v1/User/GestorONG` pelo API Gateway (rota CUSTOM: o Lambda authorizer só libera token com role GestorONG). Usa o `gestorIdToken` salvo pelo \"Login Gestor\".\n\nBootstrap: como a rota exige um token de GestorONG pra criar outro GestorONG, o primeiro gestor do ambiente não nasce por aqui — precisa de seed manual no banco/Firebase, ou promover um Doador existente via `PUT /User/MakeGestorONG` com um bypass de dev (`X-Dev-Role: GestorONG`, se `allow_dev_stage_bypass=true`)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Gestor criado (201) ou já existente (422)', function () {",
+                  "    pm.expect([201, 422]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Gestor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/api/v1/User/Login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "api",
+                "v1",
+                "User",
+                "Login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{gestorEmail}}\",\n  \"password\": \"{{gestorPassword}}\"\n}"
+            },
+            "description": "[Public] Mesma rota do login de doador — o papel (Doador/GestorONG) já vem embutido no JWT emitido pelo Firebase, não é um parâmetro do login. Salva idToken/refreshToken/sessionId do gestor — usados nas requests de Campanha."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login com sucesso', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "pm.collectionVariables.set('gestorIdToken', json.idToken);",
+                  "pm.collectionVariables.set('gestorRefreshToken', json.refreshToken);",
+                  "pm.collectionVariables.set('gestorSessionId', json.sessionId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token (Doador)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/api/v1/User/RefreshToken",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "api",
+                "v1",
+                "User",
+                "RefreshToken"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{doadorSessionId}}\",\n  \"refreshToken\": \"{{doadorRefreshToken}}\"\n}"
+            },
+            "description": "[Public — a credencial é o par sessionId+refreshToken no corpo, não um Bearer] Renova o idToken e estende a sessão por mais 1h. Sobrescreve doadorIdToken/doadorRefreshToken. Troque as variáveis pra gestor* se quiser renovar a sessão do gestor."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Token renovado', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "pm.collectionVariables.set('doadorIdToken', json.idToken);",
+                  "pm.collectionVariables.set('doadorRefreshToken', json.refreshToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout (Doador)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{doadorIdToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/api/v1/User/Session/{{doadorSessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "api",
+                "v1",
+                "User",
+                "Session",
+                "{{doadorSessionId}}"
+              ]
+            },
+            "description": "[CUSTOM — Bearer obrigatório] Encerra a sessão (remove do Redis). Retorna 204. Rode por último no fluxo do doador, ou troque pro sessionId/idToken do gestor."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Logout efetuado (204)', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Campanha",
+      "item": [
+        {
+          "name": "Criar Campanha",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{gestorIdToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/campanhas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "campanhas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{campaignTitle}}\",\n  \"description\": \"Campanha para arrecadar skates, capacetes e proteções para crianças e adolescentes em situação de vulnerabilidade social.\",\n  \"startDate\": \"2026-10-01T00:00:00Z\",\n  \"endDate\": \"2026-12-20T00:00:00Z\",\n  \"financialGoal\": 15000.00,\n  \"image\": null\n}"
+            },
+            "description": "[CUSTOM — role GestorONG] Gateway: `POST /api/v1/campanhas` → campanha-api `POST /api/v1/Campaign`. Título precisa ser único; `startDate`/`endDate` não podem estar no passado. Salva `campaignId` pra uso nas próximas requests (campanha e doação)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Campanha criada (201)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "pm.collectionVariables.set('campaignId', json.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar Campanhas Públicas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/campanhas?title=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "campanhas"
+              ],
+              "query": [
+                {
+                  "key": "title",
+                  "value": "",
+                  "description": "Filtro opcional por título (painel de transparência)."
+                }
+              ]
+            },
+            "description": "[Public] Gateway: `GET /api/v1/campanhas` → campanha-api `GET /api/v1/Campaign/public`. Só campanhas ativas."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 e lista', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json()).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar Campanha por Id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/campanhas/{{campaignId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "campanhas",
+                "{{campaignId}}"
+              ]
+            },
+            "description": "[Public] Gateway: `GET /api/v1/campanhas/{id}` → campanha-api `GET /api/v1/Campaign/{id}`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 e id confere', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('campaignId'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar Todas as Campanhas (Gestão)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{gestorIdToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/campanhas/gestao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "campanhas",
+                "gestao"
+              ]
+            },
+            "description": "[CUSTOM — role GestorONG] Gateway: `GET /api/v1/campanhas/gestao` → campanha-api `GET /api/v1/Campaign` (qualquer status, não só ativas)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancelar Campanha",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{gestorIdToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/campanhas/{{campaignId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "campanhas",
+                "{{campaignId}}",
+                "cancel"
+              ]
+            },
+            "description": "[CUSTOM — role GestorONG] Gateway: `POST /api/v1/campanhas/{id}/cancel` → campanha-api `POST /api/v1/Campaign/{id}/cancel`. Se a meta já foi batida, vira `Completed` em vez de `Cancelled`. Deixe por último no fluxo — depois de cancelar não dá mais pra doar."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Doação",
+      "item": [
+        {
+          "name": "Criar Doação",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{doadorIdToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/doacoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "doacoes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"campaignId\": \"{{campaignId}}\",\n  \"amount\": 100.00,\n  \"paymentMethod\": \"Pix\"\n}"
+            },
+            "description": "[CUSTOM — role Doador] Gateway: `POST /api/v1/doacoes` → campanha-api `POST /api/v1/Donation`. `donorId` nunca vai no corpo — vem do token. `paymentMethod` aceita string (enum serializado como texto): `CreditCard`, `DebitCard`, `Pix` ou `Boleto`. Campanha precisa estar `Active`. Salva `donationId`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Doação criada (201)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "pm.collectionVariables.set('donationId', json.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Minhas Doações",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{doadorIdToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/doacoes/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "doacoes",
+                "me"
+              ]
+            },
+            "description": "[CUSTOM — role Doador] Gateway: `GET /api/v1/doacoes/me` → campanha-api `GET /api/v1/Donation/me`. Recibo do próprio doador, inclusive em campanhas já encerradas/canceladas."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 e lista', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json()).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar Doação por Id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{doadorIdToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/doacoes/{{donationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "doacoes",
+                "{{donationId}}"
+              ]
+            },
+            "description": "[CUSTOM — qualquer usuário autenticado] Gateway: `GET /api/v1/doacoes/{id}` → campanha-api `GET /api/v1/Donation/{id}`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 e id confere', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('donationId'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
