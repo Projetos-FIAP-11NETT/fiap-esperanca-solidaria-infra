@@ -88,6 +88,8 @@ rules:
   resources:
   - nodes
   - nodes/proxy
+  # kubelet exige nodes/metrics para servir /metrics/cadvisor (uso de CPU/memoria dos containers)
+  - nodes/metrics
   - services
   - endpoints
   - pods
