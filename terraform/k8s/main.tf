@@ -1454,6 +1454,258 @@ resource "aws_api_gateway_gateway_response" "cors" {
 }
 
 # ========================
+# PROTECTED RESOURCES: cadastro/atualizacao por papel (UserController)
+#   POST /users/api/v1/User/GestorONG           -> so GestorONG cria outro gestor
+#   PUT  /users/api/v1/User/GestorONG/{userId}  -> GestorONG atualiza gestor
+#   PUT  /users/api/v1/User/Doador/{userId}     -> Doador atualiza o proprio cadastro
+# Regras correspondentes no AuthorizationRulesService do lambda-authorizer.
+# ========================
+
+resource "aws_api_gateway_resource" "users_gestor_ong" {
+  count       = local.public_users_enabled ? 1 : 0
+  rest_api_id = data.aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.users_user_public[0].id
+  path_part   = "GestorONG"
+}
+
+resource "aws_api_gateway_method" "users_gestor_ong_post" {
+  count         = local.public_users_enabled ? 1 : 0
+  rest_api_id   = data.aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.users_gestor_ong[0].id
+  http_method   = "POST"
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.lambda_authorizer.id
+}
+
+resource "aws_api_gateway_integration" "users_gestor_ong_post" {
+  count                   = local.public_users_enabled ? 1 : 0
+  rest_api_id             = data.aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.users_gestor_ong[0].id
+  http_method             = aws_api_gateway_method.users_gestor_ong_post[0].http_method
+  integration_http_method = "POST"
+  type                    = "HTTP_PROXY"
+  uri                     = "http://users-api.apps.svc.cluster.local:${var.container_port}/api/v1/User/GestorONG"
+}
+
+resource "aws_api_gateway_method" "users_gestor_ong_options" {
+  count         = local.public_users_enabled ? 1 : 0
+  rest_api_id   = data.aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.users_gestor_ong[0].id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "users_gestor_ong_options" {
+  count       = local.public_users_enabled ? 1 : 0
+  rest_api_id = data.aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.users_gestor_ong[0].id
+  http_method = aws_api_gateway_method.users_gestor_ong_options[0].http_method
+  type        = "MOCK"
+
+  request_templates = {
+    "application/json" = "{\"statusCode\":200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "users_gestor_ong_options_200" {
+  count       = local.public_users_enabled ? 1 : 0
+  rest_api_id = data.aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.users_gestor_ong[0].id
+  http_method = aws_api_gateway_method.users_gestor_ong_options[0].http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "users_gestor_ong_options_200" {
+  count       = local.public_users_enabled ? 1 : 0
+  rest_api_id = data.aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.users_gestor_ong[0].id
+  http_method = aws_api_gateway_method.users_gestor_ong_options[0].http_method
+  status_code = aws_api_gateway_method_response.users_gestor_ong_options_200[0].status_code
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,Authorization'"
+    "method.response.header.Access-Control-Allow-Methods" = "'POST,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+
+  depends_on = [aws_api_gateway_integration.users_gestor_ong_options]
+}
+
+resource "aws_api_gateway_resource" "users_gestor_ong_id" {
+  count       = local.public_users_enabled ? 1 : 0
+  rest_api_id = data.aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.users_gestor_ong[0].id
+  path_part   = "{userId}"
+}
+
+resource "aws_api_gateway_method" "users_gestor_ong_id_put" {
+  count         = local.public_users_enabled ? 1 : 0
+  rest_api_id   = data.aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.users_gestor_ong_id[0].id
+  http_method   = "PUT"
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.lambda_authorizer.id
+
+  request_parameters = {
+    "method.request.path.userId" = true
+  }
+}
+
+resource "aws_api_gateway_integration" "users_gestor_ong_id_put" {
+  count                   = local.public_users_enabled ? 1 : 0
+  rest_api_id             = data.aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.users_gestor_ong_id[0].id
+  http_method             = aws_api_gateway_method.users_gestor_ong_id_put[0].http_method
+  integration_http_method = "PUT"
+  type                    = "HTTP_PROXY"
+  uri                     = "http://users-api.apps.svc.cluster.local:${var.container_port}/api/v1/User/GestorONG/{userId}"
+
+  request_parameters = {
+    "integration.request.path.userId" = "method.request.path.userId"
+  }
+}
+
+resource "aws_api_gateway_method" "users_gestor_ong_id_options" {
+  count         = local.public_users_enabled ? 1 : 0
+  rest_api_id   = data.aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.users_gestor_ong_id[0].id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "users_gestor_ong_id_options" {
+  count       = local.public_users_enabled ? 1 : 0
+  rest_api_id = data.aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.users_gestor_ong_id[0].id
+  http_method = aws_api_gateway_method.users_gestor_ong_id_options[0].http_method
+  type        = "MOCK"
+
+  request_templates = {
+    "application/json" = "{\"statusCode\":200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "users_gestor_ong_id_options_200" {
+  count       = local.public_users_enabled ? 1 : 0
+  rest_api_id = data.aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.users_gestor_ong_id[0].id
+  http_method = aws_api_gateway_method.users_gestor_ong_id_options[0].http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "users_gestor_ong_id_options_200" {
+  count       = local.public_users_enabled ? 1 : 0
+  rest_api_id = data.aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.users_gestor_ong_id[0].id
+  http_method = aws_api_gateway_method.users_gestor_ong_id_options[0].http_method
+  status_code = aws_api_gateway_method_response.users_gestor_ong_id_options_200[0].status_code
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,Authorization'"
+    "method.response.header.Access-Control-Allow-Methods" = "'PUT,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+
+  depends_on = [aws_api_gateway_integration.users_gestor_ong_id_options]
+}
+
+resource "aws_api_gateway_resource" "users_doador_id" {
+  count       = local.public_users_enabled ? 1 : 0
+  rest_api_id = data.aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.users_doador_public[0].id
+  path_part   = "{userId}"
+}
+
+resource "aws_api_gateway_method" "users_doador_id_put" {
+  count         = local.public_users_enabled ? 1 : 0
+  rest_api_id   = data.aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.users_doador_id[0].id
+  http_method   = "PUT"
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.lambda_authorizer.id
+
+  request_parameters = {
+    "method.request.path.userId" = true
+  }
+}
+
+resource "aws_api_gateway_integration" "users_doador_id_put" {
+  count                   = local.public_users_enabled ? 1 : 0
+  rest_api_id             = data.aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.users_doador_id[0].id
+  http_method             = aws_api_gateway_method.users_doador_id_put[0].http_method
+  integration_http_method = "PUT"
+  type                    = "HTTP_PROXY"
+  uri                     = "http://users-api.apps.svc.cluster.local:${var.container_port}/api/v1/User/Doador/{userId}"
+
+  request_parameters = {
+    "integration.request.path.userId" = "method.request.path.userId"
+  }
+}
+
+resource "aws_api_gateway_method" "users_doador_id_options" {
+  count         = local.public_users_enabled ? 1 : 0
+  rest_api_id   = data.aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.users_doador_id[0].id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "users_doador_id_options" {
+  count       = local.public_users_enabled ? 1 : 0
+  rest_api_id = data.aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.users_doador_id[0].id
+  http_method = aws_api_gateway_method.users_doador_id_options[0].http_method
+  type        = "MOCK"
+
+  request_templates = {
+    "application/json" = "{\"statusCode\":200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "users_doador_id_options_200" {
+  count       = local.public_users_enabled ? 1 : 0
+  rest_api_id = data.aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.users_doador_id[0].id
+  http_method = aws_api_gateway_method.users_doador_id_options[0].http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "users_doador_id_options_200" {
+  count       = local.public_users_enabled ? 1 : 0
+  rest_api_id = data.aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.users_doador_id[0].id
+  http_method = aws_api_gateway_method.users_doador_id_options[0].http_method
+  status_code = aws_api_gateway_method_response.users_doador_id_options_200[0].status_code
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,Authorization'"
+    "method.response.header.Access-Control-Allow-Methods" = "'PUT,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+
+  depends_on = [aws_api_gateway_integration.users_doador_id_options]
+}
+
+# ========================
 # DEPLOYMENT
 # ========================
 
@@ -1490,6 +1742,18 @@ resource "aws_api_gateway_deployment" "deploy" {
       aws_api_gateway_method.users_session_delete,
       aws_api_gateway_integration.users_session_delete,
       aws_api_gateway_method.users_make_gestor_ong_put,
+      aws_api_gateway_resource.users_gestor_ong,
+      aws_api_gateway_method.users_gestor_ong_post,
+      aws_api_gateway_integration.users_gestor_ong_post,
+      aws_api_gateway_integration_response.users_gestor_ong_options_200,
+      aws_api_gateway_resource.users_gestor_ong_id,
+      aws_api_gateway_method.users_gestor_ong_id_put,
+      aws_api_gateway_integration.users_gestor_ong_id_put,
+      aws_api_gateway_integration_response.users_gestor_ong_id_options_200,
+      aws_api_gateway_resource.users_doador_id,
+      aws_api_gateway_method.users_doador_id_put,
+      aws_api_gateway_integration.users_doador_id_put,
+      aws_api_gateway_integration_response.users_doador_id_options_200,
       aws_api_gateway_integration.users_make_gestor_ong_put,
       # Doador (cadastro) e RefreshToken (novas, substituem o antigo POST /User unico)
       aws_api_gateway_method.users_doador_public_post,

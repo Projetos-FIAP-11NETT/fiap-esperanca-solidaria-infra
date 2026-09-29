@@ -337,6 +337,9 @@ Base: `http://localhost:30466/restapis/<id>/dev/_user_request_`
 | POST | `/users/api/v1/User/RefreshToken` | NONE | users-api |
 | GET / DELETE | `/users/api/v1/User/Session/{sessionId}` | CUSTOM | users-api |
 | PUT | `/users/api/v1/User/MakeGestorONG` | CUSTOM (GestorONG) | users-api |
+| POST | `/users/api/v1/User/GestorONG` | CUSTOM (GestorONG) | users-api (gestor cadastra outro gestor) |
+| PUT | `/users/api/v1/User/GestorONG/{userId}` | CUSTOM (GestorONG) | users-api (atualiza gestor) |
+| PUT | `/users/api/v1/User/Doador/{userId}` | CUSTOM (Doador) | users-api (doador atualiza o próprio cadastro) |
 
 - Rotas `NONE` não invocam a Lambda. Rotas `CUSTOM` invocam `fiap-api-authorizer`, que valida o JWT do
   Firebase e confere o papel (claim `roles`) contra a tabela de regras em
