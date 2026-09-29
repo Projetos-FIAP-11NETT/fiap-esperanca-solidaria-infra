@@ -3,6 +3,22 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+#secrets
+*secret.yaml
+*firebase-service-account.json
+*.ps1
+*configmap.yaml
+
+*.tfvars
+!*.tfvars.example
+.terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+
 # User-specific files
 *.rsuser
 *.suo
@@ -427,3 +443,6 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+*.ps1
+
+firebase-service-account.json

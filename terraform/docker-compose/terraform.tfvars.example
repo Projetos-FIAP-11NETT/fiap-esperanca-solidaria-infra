@@ -1,0 +1,29 @@
+## Example terraform.tfvars for terraform/docker-compose (API Gateway against the local docker-compose stack)
+# Copy this file to terraform.tfvars and fill values before running the deploy script.
+
+# AWS region
+aws_region = "us-east-1"
+
+# Stage name for API Gateway
+stage_name = "dev"
+
+# API and Lambda names
+api_name = "local-api-gateway-v1"
+lambda_name = "fiap-api-authorizer"
+
+# When true, API methods authorization is disabled (useful for local dev)
+# Set to "true" or "false"
+allow_dev_stage_bypass = "false"
+
+# Container port exposed by campaigns-api/users-api in docker-compose
+container_port = "8080"
+
+# Optional: Firebase project id used by the authorizer (leave empty if not used)
+firebase_project_id = ""
+
+# Optional: JWKS metadata address for token validation (leave empty if not used)
+jwks_metadata_address = ""
+
+# LocalStack edge port exposed by docker-compose (see LOCALSTACK_PORT1 in .env)
+localstack_port     = "4566"
+localstack_endpoint = "http://localhost:4566"

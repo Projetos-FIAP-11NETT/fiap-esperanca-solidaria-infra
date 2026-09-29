@@ -1,0 +1,63 @@
+# Acesso somente-leitura ao cluster para os templates "Kubernetes ... by HTTP" do Zabbix
+# (host "Kubernetes cluster state", macro {$KUBE.API.TOKEN}). Baseado no ClusterRole do
+# chart oficial da Zabbix (zabbix-community/helm-zabbix, kubernetes-monitoring).
+#
+# Token para a macro:
+#   kubectl get secret zabbix-service-account-token -n monitoring -o jsonpath='{.data.token}' | base64 -d
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: zabbix-service-account
+  namespace: monitoring
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: zabbix-service-account-token
+  namespace: monitoring
+  annotations:
+    kubernetes.io/service-account.name: zabbix-service-account
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: zabbix-service-account
+rules:
+  - apiGroups: [""]
+    resources:
+      - nodes
+      - nodes/metrics
+      - nodes/spec
+      - nodes/proxy
+      - nodes/stats
+      - namespaces
+      - pods
+      - services
+      - endpoints
+      - componentstatuses
+      - events
+      - persistentvolumes
+      - persistentvolumeclaims
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "daemonsets", "replicasets", "statefulsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+  - nonResourceURLs: ["/metrics", "/metrics/*", "/healthz", "/livez", "/readyz", "/version"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: zabbix-service-account
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: zabbix-service-account
+subjects:
+  - kind: ServiceAccount
+    name: zabbix-service-account
+    namespace: monitoring
