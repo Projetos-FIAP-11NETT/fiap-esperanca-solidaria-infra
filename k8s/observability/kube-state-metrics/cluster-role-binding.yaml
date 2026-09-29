@@ -1,0 +1,19 @@
+# kube-state-metrics v2.20.0 — manifest oficial, sem alteracoes:
+# https://github.com/kubernetes/kube-state-metrics/blob/v2.20.0/examples/standard/cluster-role-binding.yaml.yaml
+# Coletado pelo job "kube-state-metrics" em k8s/observability/prometheus/prometheus-config.yaml.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/component: exporter
+    app.kubernetes.io/name: kube-state-metrics
+    app.kubernetes.io/version: 2.20.0
+  name: kube-state-metrics
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kube-state-metrics
+subjects:
+  - kind: ServiceAccount
+    name: kube-state-metrics
+    namespace: kube-system

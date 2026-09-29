@@ -49,6 +49,7 @@ isoladamente e apontam pra cá quando o assunto é "rodar tudo junto".
                                                                     │ pgadmin, redisinsight            │
 ┌─ namespace monitoring ────────────────────────────────────────┐   └──────────────────────────────────┘
 │ grafana, prometheus, loki + promtail, tempo, zabbix           │
+│ (+ kube-state-metrics no kube-system)                         │
 └───────────────────────────────────────────────────────────────┘
 ```
 
@@ -101,7 +102,8 @@ isoladamente e apontam pra cá quando o assunto é "rodar tudo junto".
 │   ├── campaigns-api/              # Deployment + Service (NodePort 30081) do campanha-api
 │   ├── users-api/                  # Deployment + Service (NodePort 30084) do usuario-api
 │   ├── donation-worker/            # Deployment + Service (NodePort 30083) do doacao-work
-│   └── observability/              # grafana, loki, promtail, tempo, prometheus, zabbix + PVs
+│   └── observability/              # grafana, loki, promtail, tempo, prometheus (+ prometheus-config),
+│                                   # zabbix, kube-state-metrics (kube-system) + PVs
 ├── terraform/
 │   ├── k8s/                        # ★ usado com o cluster k8s: API Gateway, authorizer, SQS, Lambda de e-mail, SES
 │   ├── docker-compose/             # mesma coisa, mas apontando para os containers do docker-compose
@@ -337,6 +339,9 @@ Base: `http://localhost:30466/restapis/<id>/dev/_user_request_`
 | POST | `/users/api/v1/User/RefreshToken` | NONE | users-api |
 | GET / DELETE | `/users/api/v1/User/Session/{sessionId}` | CUSTOM | users-api |
 | PUT | `/users/api/v1/User/MakeGestorONG` | CUSTOM (GestorONG) | users-api |
+| POST | `/users/api/v1/User/GestorONG` | CUSTOM (GestorONG) | users-api (gestor cadastra outro gestor) |
+| PUT | `/users/api/v1/User/GestorONG/{userId}` | CUSTOM (GestorONG) | users-api (atualiza gestor) |
+| PUT | `/users/api/v1/User/Doador/{userId}` | CUSTOM (Doador) | users-api (doador atualiza o próprio cadastro) |
 
 - Rotas `NONE` não invocam a Lambda. Rotas `CUSTOM` invocam `fiap-api-authorizer`, que valida o JWT do
   Firebase e confere o papel (claim `roles`) contra a tabela de regras em
@@ -374,7 +379,10 @@ doações `process-donation-payment`.
 
 - **Tempo** (`tempo.monitoring.svc.cluster.local:4318`) recebe traces OTLP das APIs
   (`OpenTelemetry__TempoEndpoint`).
-- **Prometheus** faz scrape dos pods anotados com `prometheus.io/scrape: "true"` (`/metrics`, porta 8080).
+- **Prometheus** (config em `k8s/observability/prometheus/prometheus-config.yaml`) faz scrape dos pods anotados
+  com `prometheus.io/scrape: "true"`, do `users-api` e do `donation-worker` pelos Services, e do kube-state-metrics.
+- **kube-state-metrics** (v2.20.0, manifests oficiais em `k8s/observability/kube-state-metrics/`, instalado no
+  `kube-system`) expõe o estado dos objetos do cluster: `kube_pod_status_phase`, `kube_deployment_status_replicas_available` etc.
 - **Loki + Promtail** coletam os logs dos containers.
 - **Grafana** (http://localhost:30300) consolida os três.
 - **Zabbix** (server, web, agent DaemonSet, Postgres próprio) monitora os nós.
